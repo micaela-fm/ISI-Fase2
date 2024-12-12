@@ -9,26 +9,24 @@ interface DbWorker {
 }
 
 /*
- * 
+ *
  * @author MP
- * 
+ *
  * @version 1.0
- * 
+ *
  * @since 2024-11-07
  */
 class UI {
-    private enum Option {
-        // DO NOT CHANGE ANYTHING!
-        Unknown,
-        Exit,
-        novelUser,
-        listReplacementOrder,
-        startStopTravel,
-        updateDocks,
-        userSatisfaction,
-        occupationStation,
-    }
+    /**
+     * To implement from this point forward. Do not need to change the code above.
+     * -------------------------------------------------------------------------------
+     * IMPORTANT:
+     * --- DO NOT MOVE IN THE CODE ABOVE. JUST HAVE TO IMPLEMENT THE METHODS BELOW
+     * ---
+     * -------------------------------------------------------------------------------
+     */
 
+    private static final int TAB_SIZE = 24;
     private static UI __instance = null;
     private String __connectionString;
 
@@ -56,6 +54,42 @@ class UI {
         return __instance;
     }
 
+    private static void clearConsole() throws Exception {
+        for (int y = 0; y < 25; y++) // console is 80 columns and 25 lines
+            System.out.println("\n");
+
+    }
+
+    static void printResults(ResultSet dr) throws SQLException {
+        ResultSetMetaData smd = dr.getMetaData();
+        for (int i = 1; i <= smd.getColumnCount(); i++)
+            System.out.format("%-15s", smd.getColumnLabel(i));
+        // Horizontal line, be careful with line size
+        StringBuffer sep = new StringBuffer("\n");
+        for (int j = 0; j < 2 * (smd.getColumnCount() + TAB_SIZE); j++)
+            sep.append('-');
+        System.out.println(sep);
+        // Print results
+        try {
+            while (dr.next()) {
+                for (int i = 1; i <= smd.getColumnCount(); i++)
+                    System.out.format("%-15s", dr.getObject(i));
+                System.out.println();
+            }
+        } catch (SQLException e) {
+            System.out.println("Invalid arguments: " + e.getMessage());
+        }
+        // TODO
+        /*
+         * Result must be similar like:
+         * ListDepartment()
+         * dname dnumber mgrssn mgrstartdate
+         * -----------------------------------------------------
+         * Research 5 333445555 1988-05-22
+         * Administration 4 987654321 1995-01-01
+         */
+    }
+
     private Option DisplayMenu() {
         Option option = Option.Unknown;
         try {
@@ -77,12 +111,6 @@ class UI {
             // nothing to do.
         }
         return option;
-
-    }
-
-    private static void clearConsole() throws Exception {
-        for (int y = 0; y < 25; y++) // console is 80 columns and 25 lines
-            System.out.println("\n");
 
     }
 
@@ -118,48 +146,6 @@ class UI {
         __connectionString = s;
     }
 
-    /**
-     * To implement from this point forward. Do not need to change the code above.
-     * -------------------------------------------------------------------------------
-     * IMPORTANT:
-     * --- DO NOT MOVE IN THE CODE ABOVE. JUST HAVE TO IMPLEMENT THE METHODS BELOW
-     * ---
-     * -------------------------------------------------------------------------------
-     * 
-     */
-
-    private static final int TAB_SIZE = 24;
-
-    static void printResults(ResultSet dr) throws SQLException {
-        ResultSetMetaData smd = dr.getMetaData();
-        for (int i = 1; i <= smd.getColumnCount(); i++)
-            System.out.format("%-15s", smd.getColumnLabel(i));
-        // Horizontal line, be carefully with line size
-        StringBuffer sep = new StringBuffer("\n");
-        for (int j = 0; j < 2 * (smd.getColumnCount() + TAB_SIZE); j++)
-            sep.append('-');
-        System.out.println(sep);
-        // Print results
-        try {
-            while (dr.next()) {
-                for (int i = 1; i <= smd.getColumnCount(); i++)
-                    System.out.format("%-15s", dr.getObject(i));
-                System.out.println();
-            }
-        } catch (SQLException e) {
-            System.out.println("Invalid arguments: " + e.getMessage());
-        }
-        // TODO
-        /*
-         * Result must be similar like:
-         * ListDepartment()
-         * dname dnumber mgrssn mgrstartdate
-         * -----------------------------------------------------
-         * Research 5 333445555 1988-05-22
-         * Administration 4 987654321 1995-01-01
-         */
-    }
-
     private void novelUser() {
         // IMPLEMENTED
         System.out.println("novelUser()");
@@ -178,14 +164,13 @@ class UI {
         }
     }
 
-
     private void listReplacementOrder() {
         // IMPLEMENTED
         System.out.println("listReplacementOrder()");
         try {
             // IMPORTANT: The values entered must be separated by a comma with no blank
             // spaces
-            String orders = Model.inputData("Enter the time interval and the station number:\n");
+            String orders = Model.inputData("Enter the time interval (as yyyy-mm-dd hh:mm:ss) and the station number:\n");
             Model.listOrders(orders.split(","));
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -211,6 +196,18 @@ class UI {
         // TODO
         System.out.println("occupationStation()");
     }
+
+    private enum Option {
+        // DO NOT CHANGE ANYTHING!
+        Unknown,
+        Exit,
+        novelUser,
+        listReplacementOrder,
+        startStopTravel,
+        updateDocks,
+        userSatisfaction,
+        occupationStation,
+    }
 }
 
 public class App {
@@ -218,7 +215,7 @@ public class App {
     public static void main(String[] args) throws Exception {
         DatabaseProperties.load();
         String url = String.format("%s?user=%s&password=%s&ssl=false", DatabaseProperties.getUrl(),
-                DatabaseProperties.getUser(), DatabaseProperties.getPassword());
+            DatabaseProperties.getUser(), DatabaseProperties.getPassword());
 
         UI.getInstance().setConnectionString(url);
         UI.getInstance().Run();

@@ -5,7 +5,7 @@ public class ScooterModel {
     private int autonomy;
 
     // Constructor
-    public ScooterModel(){
+    public ScooterModel() {
         designation = new String();
         autonomy = 0;
     }
@@ -15,19 +15,27 @@ public class ScooterModel {
         this.autonomy = autonomy;
     }
 
-    public ScooterModel(String[] attr){
+    public ScooterModel(String[] attr) {
         this.designation = attr[1];
         this.autonomy = Integer.parseInt(attr[2]);
-    } 
+    }
 
     // Getters and Setters specific to ElectricScooter
-    public double getDesignation() { return designation; }
+    public String getDesignation() {
+        return designation;
+    }
 
-    public void setDesignation(String designation) { this.designation = designation; }
+    public void setDesignation(String designation) {
+        this.designation = designation;
+    }
 
-    public double getAutonomy() { return autonomy; }
+    public double getAutonomy() {
+        return autonomy;
+    }
 
-    public void setAutonomy(int autonomy) { this.autonomy = autonomy; }
+    public void setAutonomy(int autonomy) {
+        this.autonomy = autonomy;
+    }
 
     // Additional methods or functionality can be added as needed
 }

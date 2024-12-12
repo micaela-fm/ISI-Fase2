@@ -8,7 +8,7 @@ import java.util.Properties;
  * A utility class for managing database connection properties.
  * This class provides methods to load and retrieve database configuration
  * from a properties file.
- * 
+ *
  * @author ND
  * @version 1.0
  * @since 2024-11-01
@@ -30,7 +30,7 @@ public class DatabaseProperties {
 
     /**
      * Loads database properties from a specified properties file.
-     * 
+     *
      * @param filename The path to the properties file to be loaded
      * @throws RuntimeException if the file cannot be found or read
      */
@@ -45,7 +45,7 @@ public class DatabaseProperties {
     /**
      * Loads database properties from the default properties file.
      * The default file name is "database.properties".
-     * 
+     *
      * @throws RuntimeException if the default properties file cannot be found or
      *                          read
      */
@@ -55,7 +55,7 @@ public class DatabaseProperties {
 
     /**
      * Retrieves the database URL from the properties file.
-     * 
+     *
      * @return the database URL as a String
      * @throws IllegalStateException if properties haven't been loaded or the URL is
      *                               not defined
@@ -70,7 +70,7 @@ public class DatabaseProperties {
 
     /**
      * Retrieves the database username from the properties file.
-     * 
+     *
      * @return the database username as a String
      * @throws IllegalStateException if properties haven't been loaded or the
      *                               username is not defined
@@ -85,7 +85,7 @@ public class DatabaseProperties {
 
     /**
      * Retrieves the database password from the properties file.
-     * 
+     *
      * @return the database password as a String
      * @throws IllegalStateException if properties haven't been loaded or the
      *                               password is not defined
