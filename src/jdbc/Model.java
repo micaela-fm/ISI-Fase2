@@ -1,5 +1,6 @@
 package jdbc;
 
+import java.time.LocalDateTime;
 import java.util.Scanner;
 import java.io.IOException;
 import java.sql.*;
@@ -27,8 +28,7 @@ public class Model {
         return key.nextLine();
     }
 
-    static void addUser(jdbc.User userData, Card cardData) {
-        // PARCIALLY IMPLEMENTED
+    static void addUser(User userData, Card cardData) {
         /**
          * Adds a new user with associated card to the database
          * 
@@ -65,13 +65,26 @@ public class Model {
                     throw new RuntimeException("Creating person failed, no ID obtained.");
                 }
             }
-            
-            
-            
-            // CONTINUE
 
+            // Insert client
+            pstmtUser.setInt(1, personId);
+            pstmtUser.setTimestamp(2, userData.getRegistrationDate());
 
+            affectedRows = pstmtUser.executeUpdate();
+            if (affectedRows == 0) {
+                throw new RuntimeException("Creating user failed, no rows affected.");
+            }
 
+            // Insert card
+            cardData.setClient(personId);
+            pstmtCard.setDouble(1, cardData.getCredit());
+            pstmtCard.setString(2, cardData.getReference());
+            pstmtCard.setInt(3, cardData.getClient());
+
+            affectedRows = pstmtCard.executeUpdate();
+            if (affectedRows == 0) {
+                throw new RuntimeException("Creating card failed, no rows affected.");
+            }
 
             conn.commit();
             if (pstmtUser != null)
