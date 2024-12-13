@@ -21,7 +21,7 @@ public class ScooterModel {
     } 
 
     // Getters and Setters specific to ElectricScooter
-    public double getDesignation() { return designation; }
+    public String getDesignation() { return designation; }
 
     public void setDesignation(String designation) { this.designation = designation; }
 
