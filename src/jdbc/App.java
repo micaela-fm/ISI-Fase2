@@ -172,7 +172,7 @@ class UI {
             User userData = new User(user.split(","));
             Card cardData = new Card(card.split(","));
             Model.addUser(userData, cardData);
-            System.out.println("Inserted with success.!");
+            System.out.println("Inserted with success!");
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -195,6 +195,26 @@ class UI {
     private void startStopTravel() {
         // TODO
         System.out.println("startStopTravel()");
+        // 1) pedir card id
+        // 2) start/stop
+        // 3) se start,
+        //          a) check saldo >= desbloqueio, verificar se já há viagem começada mas não acabada com o cliente do cartão
+        //          b) pedir dock(number, station inicial) -> check state -> se occupy, obter scooter / se free ou maintenance, dar mensagem de erro
+        //          c) travel: dtinital timestamp, client, scooter, estação inicial
+        //          d) debitar custo desbloqueio
+        // 4) se stop,
+        //      a) pedir dock(number, station inicial) -> check state -> se free, colocar lá scooter / se occupy ou maintenance, dar mensagem de erro
+        //      c) travel: dtfinal, estação final
+        //      d) calcular service cost
+        //      e) card: debitar custo por minuto de utilização no saldo -- o que fazer se o saldo ficar negativo?
+        //      f) pedir avaliação e comentário (opcional), adicionar em travel
+        try {
+            String startstop = Model.inputData("Enter card ID, dock number, dock station, and START to begin your ride or STOP to end it:\n");
+            Model.travel(startstop.split(","));
+            System.out.println("Success!");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     private void updateDocks() {

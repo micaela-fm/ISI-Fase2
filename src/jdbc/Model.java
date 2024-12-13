@@ -149,7 +149,21 @@ public class Model {
          * @param values Array containing [operation, name, station, scooter]
          * @throws SQLException if database operation fails
          */
-        // TO BE DONE  
+        int cardId = Integer.parseInt(values[0]);
+        int dockNumber = Integer.parseInt(values[1]);
+        int dockStation = Integer.parseInt(values[2]);
+        boolean start = false;
+        boolean stop = false;
+        switch (values[3].toLowerCase()) {
+            case "start":
+                start = true;
+                break;
+            case "stop":
+                stop = true;
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid value: " + values[3]);
+        }
     }
     
     public static int getClientId(String name) throws SQLException {
