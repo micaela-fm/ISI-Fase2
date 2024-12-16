@@ -1,17 +1,16 @@
 package jdbc;
 
-import java.time.LocalDateTime;
-import java.util.AbstractMap;
-import java.util.Scanner;
 import java.io.IOException;
 import java.sql.*;
+import java.util.AbstractMap;
+import java.util.Scanner;
 
 /*
-*
-* @author MP
-* @version 1.0
-* @since 2024-11-07
-*/
+ *
+ * @author MP
+ * @version 1.0
+ * @since 2024-11-07
+ */
 public class Model {
 
     static String inputData(String str) throws IOException {
@@ -42,10 +41,10 @@ public class Model {
         final String INSERT_USER = "INSERT INTO client(person, dtregister) VALUES (?,?)";
 
         try (
-                Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
-                PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
-                PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
-                PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
+            Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+            PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
+            PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
             conn.setAutoCommit(false);
 
             // Insert person
@@ -188,7 +187,7 @@ public class Model {
         }
     }
 
-    public static void travel(String[] values){
+    public static void travel(String[] values) {
         /**
          * Processes a travel operation (start or stop)
          * @param values Array containing [operation, name, station, scooter]
@@ -250,8 +249,44 @@ public class Model {
         System.out.println("updateDocks()");
     }
 
-    public static void userSatisfaction(/*FILL WITH PARAMETERS */) {
+    public static void userSatisfaction() {
         // TODO
+
+        String cmd = """
+            select
+                t1.scooter,
+                avg(t1.evaluation) as average_ratings,
+                count(t1.scooter) as travels,
+                (coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)) as high_rating_percentage
+            from
+                travel t1
+            left join
+                (select scooter, count(scooter) as high_ratings
+                 from travel
+                 where evaluation >= 4
+                 group by scooter) t2
+            on
+                t1.scooter = t2.scooter
+            where
+                t1.evaluation is not null
+            group by
+                t1.scooter, t2.high_ratings
+            order by
+                t1.scooter asc ;
+            """;
+        try {
+            Connection connection = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(cmd);
+            UI.printResults(resultSet);
+            statement.close();
+            connection.close();
+        } catch (SQLException e) {
+            System.out.println("Error on insert values");
+            // e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
+        }
+
         System.out.println("userSatisfaction()");
     }
 
