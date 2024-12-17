@@ -41,10 +41,11 @@ public class Model {
         final String INSERT_USER = "INSERT INTO client(person, dtregister) VALUES (?,?)";
 
         try (
-                Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
-                PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
-                PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
-                PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
+            Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+            PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
+            PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
+
             conn.setAutoCommit(false);
 
             // Insert person
@@ -198,20 +199,24 @@ public class Model {
         int stationId = Integer.parseInt(values[2]);
 //        boolean start = false;
 //        boolean stop = false;
-        switch (values[3].toLowerCase()) {
-            case "start":
+        try {
+            switch (values[3].toLowerCase()) {
+                case "start":
 //                start = true;
-                startTravel(clientId, scooterId, stationId);
-                break;
-            case "stop":
+                    startTravel(clientId, scooterId, stationId);
+                    break;
+                case "stop":
 //                stop = true;
-                stopTravel(clientId, scooterId, stationId);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid value: " + values[3]);
+                    stopTravel(clientId, scooterId, stationId);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid value: " + values[3]);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error on insert values");
+            // e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
-
-
     }
 
     public static int getClientId(String name) throws SQLException {
@@ -285,7 +290,6 @@ public class Model {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        System.out.print("EMPTY");
     }
 
 
@@ -307,27 +311,27 @@ public class Model {
 
     public static void userSatisfaction() {
         String cmd = """
-                select
-                    t1.scooter,
-                    avg(t1.evaluation) as average_ratings,
-                    count(t1.scooter) as travels,
-                    (coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)) as high_rating_percentage
-                from
-                    travel t1
-                left join
-                    (select scooter, count(scooter) as high_ratings
-                     from travel
-                     where evaluation >= 4
-                     group by scooter) t2
-                on
-                    t1.scooter = t2.scooter
-                where
-                    t1.evaluation is not null
-                group by
-                    t1.scooter, t2.high_ratings
-                order by
-                    t1.scooter asc ;
-                """;
+            select
+                t1.scooter,
+                round(avg(t1.evaluation),2) as avg_ratings,
+                count(t1.scooter) as travels,
+                round((coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)),2) as high_rating_percentage
+            from
+                travel t1
+            left join
+                (select scooter, count(scooter) as high_ratings
+                 from travel
+                 where evaluation >= 4
+                 group by scooter) t2
+            on
+                t1.scooter = t2.scooter
+            where
+                t1.evaluation is not null
+            group by
+                t1.scooter, t2.high_ratings
+            order by
+                t1.scooter asc ;
+            """;
         try {
             Connection connection = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
             Statement statement = connection.createStatement();
@@ -349,3 +353,4 @@ public class Model {
         System.out.println("occupationStation()");
     }
 }
+
