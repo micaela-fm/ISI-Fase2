@@ -28,23 +28,24 @@ public class Model {
         return key.nextLine();
     }
 
+    /**
+     * Adds a new user with associated card to the database
+     *
+     * @param userData User information
+     * @param cardData Card information
+     * @throws SQLException if database operation fails
+     */
     static void addUser(User userData, Card cardData) {
-        /**
-         * Adds a new user with associated card to the database
-         *
-         * @param userData User information
-         * @param cardData Card information
-         * @throws SQLException if database operation fails
-         */
+
         final String INSERT_PERSON = "INSERT INTO person(email, taxnumber, name) VALUES (?,?,?) RETURNING id";
         final String INSERT_CARD = "INSERT INTO card(credit, typeof, client) VALUES (?,?,?)";
         final String INSERT_USER = "INSERT INTO client(person, dtregister) VALUES (?,?)";
 
         try (
-            Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
-            PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
-            PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
-            PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
+                Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+                PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
+                PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER)) {
 
             conn.setAutoCommit(false);
 
@@ -188,25 +189,22 @@ public class Model {
         }
     }
 
+    /**
+     * Processes a travel operation (start or stop)
+     * @param values Array containing [operation, name, station, scooter]
+     * @throws SQLException if database operation fails
+     */
     public static void travel(String[] values) {
-        /**
-         * Processes a travel operation (start or stop)
-         * @param values Array containing [operation, name, station, scooter]
-         * @throws SQLException if database operation fails
-         */
+
         int clientId = Integer.parseInt(values[0]);
         int scooterId = Integer.parseInt(values[1]);
         int stationId = Integer.parseInt(values[2]);
-//        boolean start = false;
-//        boolean stop = false;
         try {
             switch (values[3].toLowerCase()) {
                 case "start":
-//                start = true;
                     startTravel(clientId, scooterId, stationId);
                     break;
                 case "stop":
-//                stop = true;
                     stopTravel(clientId, scooterId, stationId);
                     break;
                 default:
@@ -219,129 +217,132 @@ public class Model {
         }
     }
 
+    /** Auxiliar method -- if you want
+     * Gets client ID by name from database
+     * @param name The name of the client
+     * @return client ID or -1 if not found
+     * @throws SQLException if database operation fails
+     */
     public static int getClientId(String name) throws SQLException {
-        /** Auxiliar method -- if you want
-         * Gets client ID by name from database
-         * @param name The name of the client
-         * @return client ID or -1 if not found
-         * @throws SQLException if database operation fails
-         */
+
 // TODO implement and replace the return
         return 0;
     }
 
     // Try With resources automatically closes the connections
     public static void startTravel(int clientId, int scooterId, int stationId) throws SQLException {
-    try (Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString())) {
-        conn.setAutoCommit(false);
+        try (Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString())) {
+            conn.setAutoCommit(false);
 
-        // Check if client has an ongoing travel
-        if (hasOngoingTravel(conn, "client", clientId)) {
-            throw new Exception("Client has an ongoing travel");
+            // Check if client has an ongoing travel
+            if (hasOngoingTravel(conn, "client", clientId)) {
+                throw new Exception("Client has an ongoing travel");
+            }
+
+            if (!scooterInStation(conn, scooterId, stationId)) {
+                throw new Exception("Scooter is not in the station");
+            }
+
+            // Check if scooter has an ongoing travel
+            if (hasOngoingTravel(conn, "scooter", scooterId)) {
+                throw new Exception("Scooter has an ongoing travel");
+            }
+
+            // Get credit value
+            double credit = getCredit(conn, clientId);
+
+            // Get unlock value
+            double unlock = getUnlockValue(conn);
+
+            if (credit < unlock) {
+                throw new Exception("Insufficient credit to unlock scooter");
+            }
+
+            // Insert travel record
+            insertTravelRecord(conn, clientId, scooterId, stationId);
+
+            // Deduct unlock cost from card balance
+            updateCredit(conn, clientId, unlock);
+
+            conn.commit();
+            System.out.println("Success!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
-
-        if(!scooterInStation(conn, scooterId, stationId)){
-            throw new Exception("Scooter is not in the station");
-        }
-
-        // Check if scooter has an ongoing travel
-        if (hasOngoingTravel(conn, "scooter", scooterId)) {
-            throw new Exception("Scooter has an ongoing travel");
-        }
-
-        // Get credit value
-        double credit = getCredit(conn, clientId);
-
-        // Get unlock value
-        double unlock = getUnlockValue(conn);
-
-        if (credit < unlock) {
-            throw new Exception("Insufficient credit to unlock scooter");
-        }
-
-        // Insert travel record
-        insertTravelRecord(conn, clientId, scooterId, stationId);
-
-        // Deduct unlock cost from card balance
-        updateCredit(conn, clientId, unlock);
-
-        conn.commit();
-        System.out.println("Success!");
-    } catch (SQLException e) {
-        e.printStackTrace();
-    } catch (Exception e) {
-        System.out.println(e.getMessage());
     }
-}
 
     private static boolean scooterInStation(Connection conn, int scooterId, int stationId) throws SQLException {
         String query = "SELECT EXISTS (SELECT 1 FROM dock WHERE scooter = ? AND station = ?) AS result";
-        try(PreparedStatement pstmt = conn.prepareStatement(query)){
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, scooterId);
             pstmt.setInt(2, stationId);
-            try(ResultSet rs = pstmt.executeQuery()){
+            try (ResultSet rs = pstmt.executeQuery()) {
                 return rs.next() && rs.getBoolean("result");
             }
         }
     }
 
     private static boolean hasOngoingTravel(Connection conn, String type, int id) throws SQLException {
-    String query = "SELECT EXISTS (SELECT 1 FROM travel WHERE " + type + " = ? AND dtfinal IS NULL) AS result";
-    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-        pstmt.setInt(1, id);
-        try (ResultSet rs = pstmt.executeQuery()) {
-            return rs.next() && rs.getBoolean("result");
+        String query = "SELECT EXISTS (SELECT 1 FROM travel WHERE " + type + " = ? AND dtfinal IS NULL) AS result";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next() && rs.getBoolean("result");
+            }
         }
     }
-}
 
-private static double getCredit(Connection conn, int clientId) throws SQLException {
-    String query = "SELECT credit FROM card WHERE client = ?";
-    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-        pstmt.setInt(1, clientId);
-        try (ResultSet rs = pstmt.executeQuery()) {
-            return rs.next() ? rs.getDouble("credit") : 0;
+    private static double getCredit(Connection conn, int clientId) throws SQLException {
+        String query = "SELECT credit FROM card WHERE client = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, clientId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next() ? rs.getDouble("credit") : 0;
+            }
         }
     }
-}
 
-private static double getUnlockValue(Connection conn) throws SQLException {
-    String query = "SELECT unlock FROM servicecost LIMIT 1";
-    try (PreparedStatement pstmt = conn.prepareStatement(query);
-         ResultSet rs = pstmt.executeQuery()) {
-        return rs.next() ? rs.getDouble("unlock") : 0;
+    private static double getUnlockValue(Connection conn) throws SQLException {
+        String query = "SELECT unlock FROM servicecost LIMIT 1";
+        try (PreparedStatement pstmt = conn.prepareStatement(query);
+             ResultSet rs = pstmt.executeQuery()) {
+            return rs.next() ? rs.getDouble("unlock") : 0;
+        }
     }
-}
 
-private static void insertTravelRecord(Connection conn, int clientId, int scooterId, int stationId) throws SQLException {
-    String query = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
-    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-        pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-        pstmt.setInt(2, clientId);
-        pstmt.setInt(3, scooterId);
-        pstmt.setInt(4, stationId);
-        pstmt.executeUpdate();
+    private static void insertTravelRecord(Connection conn, int clientId, int scooterId, int stationId) throws SQLException {
+        String query = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            pstmt.setInt(2, clientId);
+            pstmt.setInt(3, scooterId);
+            pstmt.setInt(4, stationId);
+            pstmt.executeUpdate();
+        }
     }
-}
 
-private static void updateCredit(Connection conn, int clientId, double amount) throws SQLException {
-    String query = "UPDATE card SET credit = credit - ? WHERE client = ?";
-    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-        pstmt.setDouble(1, amount);
-        pstmt.setInt(2, clientId);
-        pstmt.executeUpdate();
+    private static void updateCredit(Connection conn, int clientId, double amount) throws SQLException {
+        String query = "UPDATE card SET credit = credit - ? WHERE client = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setDouble(1, amount);
+            pstmt.setInt(2, clientId);
+            pstmt.executeUpdate();
+        }
     }
-}
 
-
+    /**
+     * Stops an ongoing travel
+     *
+     * @param clientId  Client ID
+     * @param scooterId Scooter ID
+     * @param stationId Destination station ID
+     * @throws SQLException if database operation fails
+     */
     public static void stopTravel(int clientId, int scooterId, int stationId) throws SQLException {
-        /**
-         * Stops an ongoing travel
-         * @param clientId Client ID
-         * @param scooterId Scooter ID
-         * @param stationId Destination station ID
-         * @throws SQLException if database operation fails
-         */
+
+
         System.out.print("EMPTY");
     }
 
@@ -352,27 +353,27 @@ private static void updateCredit(Connection conn, int clientId, double amount) t
 
     public static void userSatisfaction() {
         String cmd = """
-            select
-                t1.scooter,
-                round(avg(t1.evaluation),2) as avg_ratings,
-                count(t1.scooter) as travels,
-                round((coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)),2) as high_rating_percentage
-            from
-                travel t1
-            left join
-                (select scooter, count(scooter) as high_ratings
-                 from travel
-                 where evaluation >= 4
-                 group by scooter) t2
-            on
-                t1.scooter = t2.scooter
-            where
-                t1.evaluation is not null
-            group by
-                t1.scooter, t2.high_ratings
-            order by
-                t1.scooter asc ;
-            """;
+                select
+                    t1.scooter,
+                    round(avg(t1.evaluation),2) as avg_ratings,
+                    count(t1.scooter) as travels,
+                    round((coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)),2) as high_rating_percentage
+                from
+                    travel t1
+                left join
+                    (select scooter, count(scooter) as high_ratings
+                     from travel
+                     where evaluation >= 4
+                     group by scooter) t2
+                on
+                    t1.scooter = t2.scooter
+                where
+                    t1.evaluation is not null
+                group by
+                    t1.scooter, t2.high_ratings
+                order by
+                    t1.scooter asc ;
+                """;
         try {
             Connection connection = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
             Statement statement = connection.createStatement();
