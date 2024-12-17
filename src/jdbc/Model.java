@@ -217,7 +217,6 @@ public class Model {
             // e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
-
     }
 
     public static int getClientId(String name) throws SQLException {
