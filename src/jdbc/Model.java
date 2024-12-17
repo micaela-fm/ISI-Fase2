@@ -90,10 +90,8 @@ public class Model {
             preparedStatementUser.close();
             preparedStatementCard.close();
             preparedStatementPerson.close();
-            conn.setAutoCommit(true);
         } catch (SQLException e) {
             System.out.println("Error on insert values");
-            // e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -166,7 +164,6 @@ public class Model {
             conn.close();
         } catch (SQLException e) {
             System.out.println("Error on insert values");
-            // e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
     }
@@ -337,19 +334,86 @@ public class Model {
                 throw new Exception("Scooter has no ongoing travel with client");
             }
 
-            // calcular tempo da viagem
-            // calcular custo da viagem
-            // atualizar saldo do cartão
-            // atualizar dtfinal e stfinal na viagem
+            // TODO() As viagens com mesmo clientID e scootter ID entram em conflito ao calcular o custo da viagem entao usamos o dtfinal para garantir que estamos a finalizar a viagem correta
+
+            Timestamp dtFinal = new Timestamp(System.currentTimeMillis());
+            // update travel record
+            updateTravelRecord(conn, clientId, scooterId, stationId, dtFinal);
+
+            // calculate travel cost
+            double cost = calculateTravelCost(conn, clientId, scooterId, dtFinal);
+
+            System.out.println("Cost: " + cost);
+
+            // TODO() if cost > credit nao deixa finalizar a viagem
+
+            double credit = getCredit(conn, clientId);
+
+            System.out.println("Credit: " + credit);
+
+            if (cost > credit) {
+                throw new Exception("Insufficient credit to pay for travel");
+            }
+            // update credit
+            updateCredit(conn, clientId, cost);
+
+
             // atualizar dock da scooter
 
-
+            conn.commit();
+            System.out.println("Success!");
         } catch (SQLException e) {
             throw new RuntimeException(e.getMessage());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        System.out.print("EMPTY");
+    }
+
+    private static void updateTravelRecord(Connection conn, int clientId, int scooterId, int stationId, Timestamp dtFinal) throws SQLException {
+        String query = "UPDATE travel SET dtfinal = ?, stfinal = ? WHERE client = ? AND scooter = ? AND dtfinal IS NULL";
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setTimestamp(1, dtFinal);
+            preparedStatement.setInt(2, stationId);
+            preparedStatement.setInt(3, clientId);
+            preparedStatement.setInt(4, scooterId);
+            int rowsUpdated = preparedStatement.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                System.out.println("Viagem finalizada com sucesso.");
+            } else {
+                System.out.println("Nenhuma viagem encontrada para o cliente e scooter especificado.");
+            }
+        }
+    }
+
+    private static double calculateTravelCost(Connection conn, int clientId, int scooterId, Timestamp dtFinal) throws Exception {
+        String query = """
+                          SELECT
+                              ROUND(
+                                  (SELECT sc.usable FROM servicecost sc) *
+                                  EXTRACT(EPOCH FROM (t.dtfinal - t.dtinitial)) / 60,
+                                  2
+                              ) AS travel_cost
+                          FROM
+                              travel t
+                          WHERE
+                              t.client = ?
+                              AND t.scooter = ?
+                              AND t.dtfinal = ?;
+                      """;
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setInt(1, clientId);
+            preparedStatement.setInt(2, scooterId);
+            preparedStatement.setTimestamp(3, dtFinal);
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble("travel_cost");
+                } else {
+                    throw new Exception("Error calculating travel cost");
+                }
+            }
+        }
     }
 
     private static boolean hasOngoingTravelWithClient(Connection conn, int clientId, int scooterId) throws SQLException {
@@ -391,16 +455,12 @@ public class Model {
                 order by
                     t1.scooter asc ;
                 """;
-        try {
-            Connection connection = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(cmd);
+        try (Connection connection = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(cmd)) {
             UI.printResults(resultSet);
-            statement.close();
-            connection.close();
         } catch (SQLException e) {
             System.out.println("Error on insert values");
-            // e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
     }
