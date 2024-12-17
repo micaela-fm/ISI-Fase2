@@ -193,20 +193,24 @@ public class Model {
          * @param values Array containing [operation, name, station, scooter]
          * @throws SQLException if database operation fails
          */
-        int cardId = Integer.parseInt(values[0]);
-        int dockNumber = Integer.parseInt(values[1]);
-        int dockStation = Integer.parseInt(values[2]);
-        boolean start = false;
-        boolean stop = false;
+        int clientId = Integer.parseInt(values[0]);
+        int scooterId = Integer.parseInt(values[1]);
+        int stationId = Integer.parseInt(values[2]);
+//        boolean start = false;
+//        boolean stop = false;
         switch (values[3].toLowerCase()) {
             case "start":
-                start = true;
+//                start = true;
+                startTravel(clientId, scooterId, stationId);
                 break;
             case "stop":
-                stop = true;
+//                stop = true;
+                stopTravel(clientId, scooterId, stationId);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid value: " + values[3]);
+        }
+
         }
     }
 
@@ -229,6 +233,58 @@ public class Model {
          * @param stationId Station ID
          * @throws SQLException if database operation fails
          */
+    try {
+        Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+
+        // Get credit value
+        String getCredit = "SELECT credit FROM card WHERE client = ?";
+        PreparedStatement pstmtCredit = conn.prepareStatement(getCredit);
+        pstmtCredit.setInt(1, clientId);
+        ResultSet rsCredit = pstmtCredit.executeQuery();
+        double credit = 0;
+        if (rsCredit.next()) {
+            credit = rsCredit.getDouble("credit");
+        }
+
+        // Get unlock value
+        String getUnlock = "SELECT unlock FROM servicecost LIMIT 1";
+        PreparedStatement pstmtUnlock = conn.prepareStatement(getUnlock);
+        ResultSet rsUnlock = pstmtUnlock.executeQuery();
+        double unlock = 0;
+        if (rsUnlock.next()) {
+            unlock = rsUnlock.getDouble("unlock");
+        }
+
+        if (credit < unlock) {
+            System.out.print("Insufficient credit to unlock scooter");
+            return;
+        }
+
+        // Insert travel record
+        String insertTravel = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
+        PreparedStatement pstmtTravel = conn.prepareStatement(insertTravel);
+        pstmtTravel.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+        pstmtTravel.setInt(2, clientId);
+        pstmtTravel.setInt(3, scooterId);
+        pstmtTravel.setInt(4, stationId);
+        pstmtTravel.executeUpdate();
+
+        // Deduct unlock cost from card balance
+        String updateCredit = "UPDATE card SET credit = credit - ? WHERE client = ?";
+        PreparedStatement pstmtUpdateCredit = conn.prepareStatement(updateCredit);
+        pstmtUpdateCredit.setDouble(1, unlock);
+        pstmtUpdateCredit.setInt(2, clientId);
+        pstmtUpdateCredit.executeUpdate();
+
+        conn.commit();
+        pstmtCredit.close();
+        pstmtUnlock.close();
+        pstmtTravel.close();
+        pstmtUpdateCredit.close();
+        conn.close();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
         System.out.print("EMPTY");
     }
 
