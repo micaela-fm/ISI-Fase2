@@ -10,10 +10,6 @@ INSERT INTO PERSON (email, taxnumber, name) VALUES
 
 -- Tabela SERVICECOST
 INSERT INTO SERVICECOST (unlock, usable) VALUES
-(1.00, 0.15),
-(1.00, 0.15),
-(1.00, 0.15),
-(1.00, 0.15),
 (1.00, 0.15);
 
 -- Tabela TYPEOF
