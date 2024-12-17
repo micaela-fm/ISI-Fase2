@@ -192,25 +192,10 @@ class UI {
     }
 
     private void startStopTravel() {
-        // TODO
         System.out.println("startStopTravel()");
-        // 1) pedir card id -- OK
-        // 2) start/stop
-        // 3) se start,
-        //          a) check saldo >= desbloqueio, verificar se já há viagem começada mas não acabada com o cliente do cartão
-        //          b) pedir scooter e station
-        //          c) SE CALHAR NÃO É PRECISO: check state -> se occupy, obter scooter / se free ou maintenance, dar mensagem de erro
-        //          d) travel: dtinital timestamp, client, scooter, estação inicial
-        //          e) debitar custo desbloqueio
-        // 4) se stop,
-        //      a) pedir dock(number, station inicial) -> check state -> se free, colocar lá scooter / se occupy ou maintenance, dar mensagem de erro
-        //      c) travel: dtfinal, estação final
-        //      d) calcular service cost
-        //      e) card: debitar custo por minuto de utilização no saldo -- o que fazer se o saldo ficar negativo?
-        //      f) pedir avaliação e comentário (opcional), adicionar em travel
         try {
-            String startstop = Model.inputData("Enter user ID, scooter ID, station ID, and START to begin your ride or STOP to end it:\n");
-            Model.travel(startstop.split(","));
+            String startStop = Model.inputData("Enter user ID, scooter ID, station ID, and START to begin your ride or STOP to end it:\n");
+            Model.travel(startStop.split(","));
         } catch (Exception ex) {
             ex.printStackTrace();
         }
