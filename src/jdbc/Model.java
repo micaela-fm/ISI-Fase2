@@ -45,6 +45,7 @@ public class Model {
             PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
             PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
             PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
+
             conn.setAutoCommit(false);
 
             // Insert person
@@ -198,20 +199,25 @@ public class Model {
         int stationId = Integer.parseInt(values[2]);
 //        boolean start = false;
 //        boolean stop = false;
-        switch (values[3].toLowerCase()) {
-            case "start":
+        try {
+            switch (values[3].toLowerCase()) {
+                case "start":
 //                start = true;
-                startTravel(clientId, scooterId, stationId);
-                break;
-            case "stop":
+                    startTravel(clientId, scooterId, stationId);
+                    break;
+                case "stop":
 //                stop = true;
-                stopTravel(clientId, scooterId, stationId);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid value: " + values[3]);
+                    stopTravel(clientId, scooterId, stationId);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid value: " + values[3]);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error on insert values");
+            // e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         }
 
-        }
     }
 
     public static int getClientId(String name) throws SQLException {
@@ -233,59 +239,58 @@ public class Model {
          * @param stationId Station ID
          * @throws SQLException if database operation fails
          */
-    try {
-        Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+        try {
+            Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
 
-        // Get credit value
-        String getCredit = "SELECT credit FROM card WHERE client = ?";
-        PreparedStatement pstmtCredit = conn.prepareStatement(getCredit);
-        pstmtCredit.setInt(1, clientId);
-        ResultSet rsCredit = pstmtCredit.executeQuery();
-        double credit = 0;
-        if (rsCredit.next()) {
-            credit = rsCredit.getDouble("credit");
+            // Get credit value
+            String getCredit = "SELECT credit FROM card WHERE client = ?";
+            PreparedStatement pstmtCredit = conn.prepareStatement(getCredit);
+            pstmtCredit.setInt(1, clientId);
+            ResultSet rsCredit = pstmtCredit.executeQuery();
+            double credit = 0;
+            if (rsCredit.next()) {
+                credit = rsCredit.getDouble("credit");
+            }
+
+            // Get unlock value
+            String getUnlock = "SELECT unlock FROM servicecost LIMIT 1";
+            PreparedStatement pstmtUnlock = conn.prepareStatement(getUnlock);
+            ResultSet rsUnlock = pstmtUnlock.executeQuery();
+            double unlock = 0;
+            if (rsUnlock.next()) {
+                unlock = rsUnlock.getDouble("unlock");
+            }
+
+            if (credit < unlock) {
+                System.out.print("Insufficient credit to unlock scooter");
+                return;
+            }
+
+            // Insert travel record
+            String insertTravel = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
+            PreparedStatement pstmtTravel = conn.prepareStatement(insertTravel);
+            pstmtTravel.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            pstmtTravel.setInt(2, clientId);
+            pstmtTravel.setInt(3, scooterId);
+            pstmtTravel.setInt(4, stationId);
+            pstmtTravel.executeUpdate();
+
+            // Deduct unlock cost from card balance
+            String updateCredit = "UPDATE card SET credit = credit - ? WHERE client = ?";
+            PreparedStatement pstmtUpdateCredit = conn.prepareStatement(updateCredit);
+            pstmtUpdateCredit.setDouble(1, unlock);
+            pstmtUpdateCredit.setInt(2, clientId);
+            pstmtUpdateCredit.executeUpdate();
+
+            conn.commit();
+            pstmtCredit.close();
+            pstmtUnlock.close();
+            pstmtTravel.close();
+            pstmtUpdateCredit.close();
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-
-        // Get unlock value
-        String getUnlock = "SELECT unlock FROM servicecost LIMIT 1";
-        PreparedStatement pstmtUnlock = conn.prepareStatement(getUnlock);
-        ResultSet rsUnlock = pstmtUnlock.executeQuery();
-        double unlock = 0;
-        if (rsUnlock.next()) {
-            unlock = rsUnlock.getDouble("unlock");
-        }
-
-        if (credit < unlock) {
-            System.out.print("Insufficient credit to unlock scooter");
-            return;
-        }
-
-        // Insert travel record
-        String insertTravel = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
-        PreparedStatement pstmtTravel = conn.prepareStatement(insertTravel);
-        pstmtTravel.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-        pstmtTravel.setInt(2, clientId);
-        pstmtTravel.setInt(3, scooterId);
-        pstmtTravel.setInt(4, stationId);
-        pstmtTravel.executeUpdate();
-
-        // Deduct unlock cost from card balance
-        String updateCredit = "UPDATE card SET credit = credit - ? WHERE client = ?";
-        PreparedStatement pstmtUpdateCredit = conn.prepareStatement(updateCredit);
-        pstmtUpdateCredit.setDouble(1, unlock);
-        pstmtUpdateCredit.setInt(2, clientId);
-        pstmtUpdateCredit.executeUpdate();
-
-        conn.commit();
-        pstmtCredit.close();
-        pstmtUnlock.close();
-        pstmtTravel.close();
-        pstmtUpdateCredit.close();
-        conn.close();
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-        System.out.print("EMPTY");
     }
 
 
@@ -309,9 +314,9 @@ public class Model {
         String cmd = """
             select
                 t1.scooter,
-                avg(t1.evaluation) as average_ratings,
+                round(avg(t1.evaluation),2) as avg_ratings,
                 count(t1.scooter) as travels,
-                (coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)) as high_rating_percentage
+                round((coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)),2) as high_rating_percentage
             from
                 travel t1
             left join
@@ -349,3 +354,4 @@ public class Model {
         System.out.println("occupationStation()");
     }
 }
+
