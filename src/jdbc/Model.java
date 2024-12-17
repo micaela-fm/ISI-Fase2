@@ -250,8 +250,6 @@ public class Model {
     }
 
     public static void userSatisfaction() {
-        // TODO
-
         String cmd = """
             select
                 t1.scooter,
