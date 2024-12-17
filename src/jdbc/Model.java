@@ -41,24 +41,24 @@ public class Model {
 
         try (
                 Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
-                PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
-                PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
-                PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER)) {
+                PreparedStatement preparedStatementPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement preparedStatementCard = conn.prepareStatement(INSERT_CARD);
+                PreparedStatement preparedStatementUser = conn.prepareStatement(INSERT_USER)) {
 
             conn.setAutoCommit(false);
 
             // Insert person
-            pstmtPerson.setString(1, userData.getEmail());
-            pstmtPerson.setInt(2, userData.getTaxNumber());
-            pstmtPerson.setString(3, userData.getName());
+            preparedStatementPerson.setString(1, userData.getEmail());
+            preparedStatementPerson.setInt(2, userData.getTaxNumber());
+            preparedStatementPerson.setString(3, userData.getName());
 
-            int affectedRows = pstmtPerson.executeUpdate();
+            int affectedRows = preparedStatementPerson.executeUpdate();
             if (affectedRows == 0) {
                 throw new RuntimeException("Creating person failed, no rows affected.");
             }
 
             int personId;
-            try (ResultSet generatedKeys = pstmtPerson.getGeneratedKeys()) {
+            try (ResultSet generatedKeys = preparedStatementPerson.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     personId = generatedKeys.getInt(1);
                 } else {
@@ -67,29 +67,29 @@ public class Model {
             }
 
             // Insert client
-            pstmtUser.setInt(1, personId);
-            pstmtUser.setTimestamp(2, userData.getRegistrationDate());
+            preparedStatementUser.setInt(1, personId);
+            preparedStatementUser.setTimestamp(2, userData.getRegistrationDate());
 
-            affectedRows = pstmtUser.executeUpdate();
+            affectedRows = preparedStatementUser.executeUpdate();
             if (affectedRows == 0) {
                 throw new RuntimeException("Creating user failed, no rows affected.");
             }
 
             // Insert card
             cardData.setClient(personId);
-            pstmtCard.setDouble(1, cardData.getCredit());
-            pstmtCard.setString(2, cardData.getReference());
-            pstmtCard.setInt(3, cardData.getClient());
+            preparedStatementCard.setDouble(1, cardData.getCredit());
+            preparedStatementCard.setString(2, cardData.getReference());
+            preparedStatementCard.setInt(3, cardData.getClient());
 
-            affectedRows = pstmtCard.executeUpdate();
+            affectedRows = preparedStatementCard.executeUpdate();
             if (affectedRows == 0) {
                 throw new RuntimeException("Creating card failed, no rows affected.");
             }
 
             conn.commit();
-            pstmtUser.close();
-            pstmtCard.close();
-            pstmtPerson.close();
+            preparedStatementUser.close();
+            preparedStatementCard.close();
+            preparedStatementPerson.close();
             conn.setAutoCommit(true);
         } catch (SQLException e) {
             System.out.println("Error on insert values");
@@ -200,7 +200,7 @@ public class Model {
     }
 
     /**
-     * Auxiliar method -- if you want
+     * Auxiliary method -- if you want
      * Gets client ID by name from database
      *
      * @param name The name of the client
@@ -258,10 +258,10 @@ public class Model {
 
     private static boolean scooterInStation(Connection conn, int scooterId, int stationId) throws SQLException {
         String query = "SELECT EXISTS (SELECT 1 FROM dock WHERE scooter = ? AND station = ?) AS result";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setInt(1, scooterId);
-            pstmt.setInt(2, stationId);
-            try (ResultSet rs = pstmt.executeQuery()) {
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setInt(1, scooterId);
+            preparedStatement.setInt(2, stationId);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 return rs.next() && rs.getBoolean("result");
             }
         }
@@ -269,9 +269,9 @@ public class Model {
 
     private static boolean hasOngoingTravel(Connection conn, String type, int id) throws SQLException {
         String query = "SELECT EXISTS (SELECT 1 FROM travel WHERE " + type + " = ? AND dtfinal IS NULL) AS result";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setInt(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setInt(1, id);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 return rs.next() && rs.getBoolean("result");
             }
         }
@@ -279,9 +279,9 @@ public class Model {
 
     private static double getCredit(Connection conn, int clientId) throws SQLException {
         String query = "SELECT credit FROM card WHERE client = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setInt(1, clientId);
-            try (ResultSet rs = pstmt.executeQuery()) {
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setInt(1, clientId);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
                 return rs.next() ? rs.getDouble("credit") : 0;
             }
         }
@@ -289,29 +289,29 @@ public class Model {
 
     private static double getUnlockValue(Connection conn) throws SQLException {
         String query = "SELECT unlock FROM servicecost LIMIT 1";
-        try (PreparedStatement pstmt = conn.prepareStatement(query);
-             ResultSet rs = pstmt.executeQuery()) {
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query);
+             ResultSet rs = preparedStatement.executeQuery()) {
             return rs.next() ? rs.getDouble("unlock") : 0;
         }
     }
 
     private static void insertTravelRecord(Connection conn, int clientId, int scooterId, int stationId) throws SQLException {
         String query = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-            pstmt.setInt(2, clientId);
-            pstmt.setInt(3, scooterId);
-            pstmt.setInt(4, stationId);
-            pstmt.executeUpdate();
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            preparedStatement.setInt(2, clientId);
+            preparedStatement.setInt(3, scooterId);
+            preparedStatement.setInt(4, stationId);
+            preparedStatement.executeUpdate();
         }
     }
 
     private static void updateCredit(Connection conn, int clientId, double amount) throws SQLException {
         String query = "UPDATE card SET credit = credit - ? WHERE client = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setDouble(1, amount);
-            pstmt.setInt(2, clientId);
-            pstmt.executeUpdate();
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setDouble(1, amount);
+            preparedStatement.setInt(2, clientId);
+            preparedStatement.executeUpdate();
         }
     }
 
@@ -324,9 +324,43 @@ public class Model {
      * @throws SQLException if database operation fails
      */
     public static void stopTravel(int clientId, int scooterId, int stationId) throws SQLException {
+        try (Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString())) {
+            conn.setAutoCommit(false);
+
+            // Check if client has an ongoing travel
+            if (!hasOngoingTravel(conn, "client", clientId) ) {
+                throw new Exception("Client has no ongoing travel");
+            }
+
+            // Check if scooter has ongoing travel with the client
+            if (!hasOngoingTravelWithClient(conn, clientId, scooterId)) {
+                throw new Exception("Scooter has no ongoing travel with client");
+            }
+
+            // calcular tempo da viagem
+            // calcular custo da viagem
+            // atualizar saldo do cartão
+            // atualizar dtfinal e stfinal na viagem
+            // atualizar dock da scooter
 
 
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
         System.out.print("EMPTY");
+    }
+
+    private static boolean hasOngoingTravelWithClient(Connection conn, int clientId, int scooterId) throws SQLException {
+        String query = "SELECT EXISTS (SELECT 1 FROM travel WHERE client = ? AND scooter = ? AND dtfinal IS NULL) AS result";
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            preparedStatement.setInt(1, clientId);
+            preparedStatement.setInt(2, scooterId);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                return rs.next() && rs.getBoolean("result");
+            }
+        }
     }
 
     public static void updateDocks(/*FILL WITH PARAMETERS */) {
