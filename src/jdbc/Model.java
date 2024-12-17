@@ -41,10 +41,10 @@ public class Model {
         final String INSERT_USER = "INSERT INTO client(person, dtregister) VALUES (?,?)";
 
         try (
-            Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
-            PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
-            PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
-            PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
+                Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+                PreparedStatement pstmtPerson = conn.prepareStatement(INSERT_PERSON, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement pstmtCard = conn.prepareStatement(INSERT_CARD);
+                PreparedStatement pstmtUser = conn.prepareStatement(INSERT_USER);) {
             conn.setAutoCommit(false);
 
             // Insert person
@@ -211,7 +211,7 @@ public class Model {
                 throw new IllegalArgumentException("Invalid value: " + values[3]);
         }
 
-        }
+
     }
 
     public static int getClientId(String name) throws SQLException {
@@ -233,58 +233,58 @@ public class Model {
          * @param stationId Station ID
          * @throws SQLException if database operation fails
          */
-    try {
-        Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+        try {
+            Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
 
-        // Get credit value
-        String getCredit = "SELECT credit FROM card WHERE client = ?";
-        PreparedStatement pstmtCredit = conn.prepareStatement(getCredit);
-        pstmtCredit.setInt(1, clientId);
-        ResultSet rsCredit = pstmtCredit.executeQuery();
-        double credit = 0;
-        if (rsCredit.next()) {
-            credit = rsCredit.getDouble("credit");
+            // Get credit value
+            String getCredit = "SELECT credit FROM card WHERE client = ?";
+            PreparedStatement pstmtCredit = conn.prepareStatement(getCredit);
+            pstmtCredit.setInt(1, clientId);
+            ResultSet rsCredit = pstmtCredit.executeQuery();
+            double credit = 0;
+            if (rsCredit.next()) {
+                credit = rsCredit.getDouble("credit");
+            }
+
+            // Get unlock value
+            String getUnlock = "SELECT unlock FROM servicecost LIMIT 1";
+            PreparedStatement pstmtUnlock = conn.prepareStatement(getUnlock);
+            ResultSet rsUnlock = pstmtUnlock.executeQuery();
+            double unlock = 0;
+            if (rsUnlock.next()) {
+                unlock = rsUnlock.getDouble("unlock");
+            }
+
+            if (credit < unlock) {
+                System.out.print("Insufficient credit to unlock scooter");
+                return;
+            }
+
+            // Insert travel record
+            String insertTravel = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
+            PreparedStatement pstmtTravel = conn.prepareStatement(insertTravel);
+            pstmtTravel.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            pstmtTravel.setInt(2, clientId);
+            pstmtTravel.setInt(3, scooterId);
+            pstmtTravel.setInt(4, stationId);
+            pstmtTravel.executeUpdate();
+
+            // Deduct unlock cost from card balance
+            String updateCredit = "UPDATE card SET credit = credit - ? WHERE client = ?";
+            PreparedStatement pstmtUpdateCredit = conn.prepareStatement(updateCredit);
+            pstmtUpdateCredit.setDouble(1, unlock);
+            pstmtUpdateCredit.setInt(2, clientId);
+            pstmtUpdateCredit.executeUpdate();
+
+            conn.commit();
+            pstmtCredit.close();
+            pstmtUnlock.close();
+            pstmtTravel.close();
+            pstmtUpdateCredit.close();
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-
-        // Get unlock value
-        String getUnlock = "SELECT unlock FROM servicecost LIMIT 1";
-        PreparedStatement pstmtUnlock = conn.prepareStatement(getUnlock);
-        ResultSet rsUnlock = pstmtUnlock.executeQuery();
-        double unlock = 0;
-        if (rsUnlock.next()) {
-            unlock = rsUnlock.getDouble("unlock");
-        }
-
-        if (credit < unlock) {
-            System.out.print("Insufficient credit to unlock scooter");
-            return;
-        }
-
-        // Insert travel record
-        String insertTravel = "INSERT INTO travel(dtinitial, client, scooter, stinitial) VALUES (?, ?, ?, ?)";
-        PreparedStatement pstmtTravel = conn.prepareStatement(insertTravel);
-        pstmtTravel.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-        pstmtTravel.setInt(2, clientId);
-        pstmtTravel.setInt(3, scooterId);
-        pstmtTravel.setInt(4, stationId);
-        pstmtTravel.executeUpdate();
-
-        // Deduct unlock cost from card balance
-        String updateCredit = "UPDATE card SET credit = credit - ? WHERE client = ?";
-        PreparedStatement pstmtUpdateCredit = conn.prepareStatement(updateCredit);
-        pstmtUpdateCredit.setDouble(1, unlock);
-        pstmtUpdateCredit.setInt(2, clientId);
-        pstmtUpdateCredit.executeUpdate();
-
-        conn.commit();
-        pstmtCredit.close();
-        pstmtUnlock.close();
-        pstmtTravel.close();
-        pstmtUpdateCredit.close();
-        conn.close();
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
         System.out.print("EMPTY");
     }
 
@@ -307,27 +307,27 @@ public class Model {
 
     public static void userSatisfaction() {
         String cmd = """
-            select
-                t1.scooter,
-                avg(t1.evaluation) as average_ratings,
-                count(t1.scooter) as travels,
-                (coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)) as high_rating_percentage
-            from
-                travel t1
-            left join
-                (select scooter, count(scooter) as high_ratings
-                 from travel
-                 where evaluation >= 4
-                 group by scooter) t2
-            on
-                t1.scooter = t2.scooter
-            where
-                t1.evaluation is not null
-            group by
-                t1.scooter, t2.high_ratings
-            order by
-                t1.scooter asc ;
-            """;
+                select
+                    t1.scooter,
+                    avg(t1.evaluation) as average_ratings,
+                    count(t1.scooter) as travels,
+                    (coalesce (t2.high_ratings, 0) * 100.0 / count(t1.scooter)) as high_rating_percentage
+                from
+                    travel t1
+                left join
+                    (select scooter, count(scooter) as high_ratings
+                     from travel
+                     where evaluation >= 4
+                     group by scooter) t2
+                on
+                    t1.scooter = t2.scooter
+                where
+                    t1.evaluation is not null
+                group by
+                    t1.scooter, t2.high_ratings
+                order by
+                    t1.scooter asc ;
+                """;
         try {
             Connection connection = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
             Statement statement = connection.createStatement();

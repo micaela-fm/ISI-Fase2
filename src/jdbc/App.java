@@ -9,11 +9,11 @@ interface DbWorker {
 }
 
 /*
- * 
+ *
  * @author MP
- * 
+ *
  * @version 1.0
- * 
+ *
  * @since 2024-11-07
  */
 class UI {
@@ -125,7 +125,6 @@ class UI {
      * --- DO NOT MOVE IN THE CODE ABOVE. JUST HAVE TO IMPLEMENT THE METHODS BELOW
      * ---
      * -------------------------------------------------------------------------------
-     * 
      */
 
     private static final int TAB_SIZE = 24;
