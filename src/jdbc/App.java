@@ -173,7 +173,7 @@ class UI {
             Model.addUser(userData, cardData);
             System.out.println("Inserted with success!");
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println(ex.getMessage());
         }
     }
 
@@ -187,7 +187,7 @@ class UI {
             String orders = Model.inputData("Enter the time interval and the station number:\n");
             Model.listOrders(orders.split(","));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println(ex.getMessage());
         }
     }
 
@@ -197,12 +197,17 @@ class UI {
             String startStop = Model.inputData("Enter user ID, scooter ID, station ID, and START to begin your ride or STOP to end it:\n");
             Model.travel(startStop.split(","));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println(ex.getMessage());
         }
     }
 
     private void updateDocks() {
-        // TODO
+        try {
+            String updateDock = Model.inputData("Enter dock number, station ID, scooter ID and new dock state:\n");
+            Model.updateDocks(updateDock.split(","));
+        } catch (Exception ex) {
+            System.err.println(ex.getMessage());
+        }
         System.out.println("updateDocks()");
     }
 
@@ -211,7 +216,7 @@ class UI {
         try {
             Model.userSatisfaction();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println(ex.getMessage());
         }
     }
 
