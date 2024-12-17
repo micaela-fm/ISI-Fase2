@@ -211,7 +211,6 @@ class UI {
         try {
             String startstop = Model.inputData("Enter user ID, scooter ID, station ID, and START to begin your ride or STOP to end it:\n");
             Model.travel(startstop.split(","));
-            System.out.println("Success!");
         } catch (Exception ex) {
             ex.printStackTrace();
         }
