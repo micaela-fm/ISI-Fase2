@@ -223,12 +223,8 @@ class UI {
     }
 
     private void userSatisfaction() {
+        // TODO
         System.out.println("userSatisfaction()");
-        try{
-            Model.userSatisfaction();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
     }
 
     private void occupationStation() {
