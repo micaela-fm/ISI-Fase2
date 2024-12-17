@@ -1,6 +1,5 @@
 package jdbc;
 
-import java.io.IOException;
 import java.sql.*;
 import java.util.AbstractMap;
 import java.util.Scanner;
@@ -13,7 +12,7 @@ import java.util.Scanner;
  */
 public class Model {
 
-    static String inputData(String str) throws IOException {
+    static String inputData(String str) {
         // IMPLEMENTED
         /*
          * Gets input data from user
@@ -33,7 +32,6 @@ public class Model {
      *
      * @param userData User information
      * @param cardData Card information
-     * @throws SQLException if database operation fails
      */
     static void addUser(User userData, Card cardData) {
 
@@ -89,16 +87,10 @@ public class Model {
             }
 
             conn.commit();
-            if (pstmtUser != null)
-                pstmtUser.close();
-            if (pstmtCard != null)
-                pstmtCard.close();
-            if (pstmtPerson != null)
-                pstmtPerson.close();
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
-            }
+            pstmtUser.close();
+            pstmtCard.close();
+            pstmtPerson.close();
+            conn.setAutoCommit(true);
         } catch (SQLException e) {
             System.out.println("Error on insert values");
             // e.printStackTrace();
@@ -107,21 +99,11 @@ public class Model {
     }
 
     /**
-     * To implement from this point forward. Do not need to change the code above.
-     * -------------------------------------------------------------------------------
-     * IMPORTANT:
-     * --- DO NOT MOVE IN THE CODE ABOVE. JUST HAVE TO IMPLEMENT THE METHODS BELOW
-     * ---
-     * -------------------------------------------------------------------------------
-     **/
-
-    /**
      * Lists orders based on specified criteria
      *
      * @param orders Criteria for listing orders
-     * @throws SQLException if database operation fails
      */
-    static void listOrders(String[] orders) throws SQLException {
+    static void listOrders(String[] orders) {
         final String val1 = orders[0];
         final String val2 = orders[1];
         final String val3 = orders[2];
@@ -191,8 +173,8 @@ public class Model {
 
     /**
      * Processes a travel operation (start or stop)
+     *
      * @param values Array containing [operation, name, station, scooter]
-     * @throws SQLException if database operation fails
      */
     public static void travel(String[] values) {
 
@@ -217,13 +199,14 @@ public class Model {
         }
     }
 
-    /** Auxiliar method -- if you want
+    /**
+     * Auxiliar method -- if you want
      * Gets client ID by name from database
+     *
      * @param name The name of the client
      * @return client ID or -1 if not found
-     * @throws SQLException if database operation fails
      */
-    public static int getClientId(String name) throws SQLException {
+    public static int getClientId(String name) {
 
 // TODO implement and replace the return
         return 0;
@@ -267,7 +250,7 @@ public class Model {
             conn.commit();
             System.out.println("Success!");
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
