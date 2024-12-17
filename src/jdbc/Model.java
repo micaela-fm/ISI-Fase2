@@ -411,9 +411,42 @@ public class Model {
         }
     }
 
-    public static void updateDocks(/*FILL WITH PARAMETERS */) {
-        // TODO
-        System.out.println("updateDocks()");
+    public static void updateDocks(String [] dockData) {
+        int dockNumber = Integer.parseInt(dockData[0]);
+        int stationId = Integer.parseInt(dockData[1]);
+        int scooterId;
+        try {
+            scooterId = Integer.parseInt(dockData[2]);
+        } catch (NumberFormatException e) {
+            scooterId = -1;
+        }
+        String newState = dockData[3];
+
+        String query = "UPDATE dock SET state = ?, scooter = ? WHERE number = ? AND station = ?";
+
+        try (Connection conn = DriverManager.getConnection(jdbc.UI.getInstance().getConnectionString());
+             PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            conn.setAutoCommit(false);
+            preparedStatement.setString(1, newState);
+            if (scooterId == -1) {
+                preparedStatement.setNull(2, Types.INTEGER);
+            } else {
+                preparedStatement.setInt(2, scooterId);
+            }
+            preparedStatement.setInt(3, dockNumber);
+            preparedStatement.setInt(4, stationId);
+            int rowsUpdated = preparedStatement.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                System.out.println("Dock updated successfully.");
+            } else {
+                System.out.println("No dock found with the specified number and station.");
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            System.out.println("Error on insert values");
+            throw new RuntimeException(e.getMessage());
+        }
     }
 
     public static void userSatisfaction() {
