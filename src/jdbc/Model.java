@@ -4,6 +4,8 @@ import java.sql.*;
 import java.util.AbstractMap;
 import java.util.Scanner;
 
+import static java.lang.Math.round;
+
 /*
  *
  * @author MP
@@ -87,9 +89,7 @@ public class Model {
             }
 
             conn.commit();
-            preparedStatementUser.close();
-            preparedStatementCard.close();
-            preparedStatementPerson.close();
+            System.out.println("Success!");
         } catch (SQLException e) {
             System.out.println("Error on insert values");
             throw new RuntimeException(e.getMessage());
@@ -146,6 +146,7 @@ public class Model {
      * @param startDate Start date for a period
      * @param endDate   End date for a period
      */
+    // TODO() - use try with resources or close the connection
     public static void listReplacementOrders(int stationId, Timestamp startDate, Timestamp endDate) {
         final String VALUE_CMD = "select * from replacementorder where station = ? and dtorder between ? and ?";
         try {
@@ -191,22 +192,8 @@ public class Model {
             }
         } catch (SQLException e) {
             System.out.println("Error on insert values");
-            // e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
-    }
-
-    /**
-     * Auxiliary method -- if you want
-     * Gets client ID by name from database
-     *
-     * @param name The name of the client
-     * @return client ID or -1 if not found
-     */
-    public static int getClientId(String name) {
-
-// TODO implement and replace the return
-        return 0;
     }
 
     // Try With resources automatically closes the connections
@@ -334,7 +321,7 @@ public class Model {
                 throw new Exception("Scooter has no ongoing travel with client");
             }
 
-            // TODO() As viagens com mesmo clientID e scootter ID entram em conflito ao calcular o custo da viagem entao usamos o dtfinal para garantir que estamos a finalizar a viagem correta
+            //As viagens com mesmo clientID e scootter ID entram em conflito ao calcular o custo da viagem entao usamos o dtfinal para garantir que estamos a finalizar a viagem correta
 
             Timestamp dtFinal = new Timestamp(System.currentTimeMillis());
             // update travel record
@@ -342,23 +329,20 @@ public class Model {
 
             // calculate travel cost
             double cost = calculateTravelCost(conn, clientId, scooterId, dtFinal);
-
             System.out.println("Cost: " + cost);
 
-            // TODO() if cost > credit nao deixa finalizar a viagem
+            //if cost > credit nao deixa finalizar a viagem
 
             double credit = getCredit(conn, clientId);
 
-            System.out.println("Credit: " + credit);
 
             if (cost > credit) {
+                System.out.println("Credit: " + credit);
                 throw new Exception("Insufficient credit to pay for travel");
             }
             // update credit
             updateCredit(conn, clientId, cost);
-
-
-            // atualizar dock da scooter
+            System.out.println("Credit: " + String.format("%.2f", (credit - cost)));
 
             conn.commit();
             System.out.println("Success!");
